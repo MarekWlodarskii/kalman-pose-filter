@@ -1,41 +1,28 @@
 import { FilesetResolver, PoseLandmarker } from "@mediapipe/tasks-vision";
 import React, { useRef, useState, useEffect } from "react";
-import { JointNames } from "../Utils/Constants/enums";
-import { VideoPoseData, PairOfJoints, Resolution } from "../Utils/Constants/types";
+import { VideoPoseData, Resolution } from "../Utils/Constants/types";
 import { handleVideoChange } from "../Utils/Video/handleVideoChange";
 import { drawLandmarks } from "../Utils/Video/drawLandmarks";
-import { analyzeVideo } from "../Utils/Analysis/analyzeVideo";
+import { analyzeVideo } from "../Utils/Analysis/initialAnalyze";
 import ButtonResolution from "./ButtonResolution";
 import ButtonFrame from "./ButtonFrame";
 import InfoComp from "./InfoComp";
 
 const PoseAnalyzer: React.FC = () => {
   const visibilityThreshold = 0.7;
-  const [videoDuration, setVideoDuration] = useState<number>();
-  const [interval, setInterval] = useState<number>();
   const animationFrameRef = useRef<number | null>(null);
   const [poseData, setPoseData] = useState<VideoPoseData | null>(null);
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const poseLandmarkerRef = useRef<PoseLandmarker | null>(null);
-  const fps = 30;
+  const fps = 60;
   const [allowControl, setAllowControl] = useState<boolean>(false);
   const wantedLandmarks = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28];
-  const pairsOfJoints: PairOfJoints[] = [
-    { joint1: JointNames.LEFT_FEET, joint2: JointNames.LEFT_KNEE, bestMeanVisibility: null, bestMeanVisibilityFrameIndex: null, bestMinVisibility: null, bestMinVisibilityFrameIndex: null, distance: null },
-    { joint1: JointNames.LEFT_KNEE, joint2: JointNames.LEFT_HIP, bestMeanVisibility: null, bestMeanVisibilityFrameIndex: null, bestMinVisibility: null, bestMinVisibilityFrameIndex: null, distance: null },
-    { joint1: JointNames.RIGHT_FEET, joint2: JointNames.RIGHT_KNEE, bestMeanVisibility: null, bestMeanVisibilityFrameIndex: null, bestMinVisibility: null, bestMinVisibilityFrameIndex: null, distance: null },
-    { joint1: JointNames.RIGHT_KNEE, joint2: JointNames.RIGHT_HIP, bestMeanVisibility: null, bestMeanVisibilityFrameIndex: null, bestMinVisibility: null, bestMinVisibilityFrameIndex: null, distance: null },
-    { joint1: JointNames.LEFT_WRIST, joint2: JointNames.LEFT_ELBOW, bestMeanVisibility: null, bestMeanVisibilityFrameIndex: null, bestMinVisibility: null, bestMinVisibilityFrameIndex: null, distance: null },
-    { joint1: JointNames.LEFT_SHOULDER, joint2: JointNames.LEFT_ELBOW, bestMeanVisibility: null, bestMeanVisibilityFrameIndex: null, bestMinVisibility: null, bestMinVisibilityFrameIndex: null, distance: null },
-    { joint1: JointNames.RIGHT_WRIST, joint2: JointNames.RIGHT_ELBOW, bestMeanVisibility: null, bestMeanVisibilityFrameIndex: null, bestMinVisibility: null, bestMinVisibilityFrameIndex: null, distance: null },
-    { joint1: JointNames.RIGHT_SHOULDER, joint2: JointNames.RIGHT_ELBOW, bestMeanVisibility: null, bestMeanVisibilityFrameIndex: null, bestMinVisibility: null, bestMinVisibilityFrameIndex: null, distance: null },
-  ]
 
   const [resolution, setResolution] = useState<Resolution | null>(null);
 
-  const runningMode = "IMAGE";
+  const runningMode = "VIDEO";
 
   useEffect(() => {
     const createPoseLandmarker = async () => {
@@ -88,13 +75,9 @@ const PoseAnalyzer: React.FC = () => {
                 videoRef,
                 poseLandmarkerRef,
                 setAllowControl,
-                setVideoDuration,
-                setInterval,
                 fps,
-                canvasRef,
                 wantedLandmarks,
                 visibilityThreshold,
-                pairsOfJoints,
                 setPoseData
               );
               if (!videoRef.current) return;

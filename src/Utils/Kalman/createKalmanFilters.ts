@@ -4,23 +4,23 @@ export const createKalmanFilters = (
   wantedLandmarks: number[],
   fps: number
 ) => {
-  const filters: Record<number, { x: any, y: any, z: any }> = {};
+  const filters: Record<number, { x: KalmanFilter1D, y: KalmanFilter1D, z: KalmanFilter1D }> = {};
   const dt = 1 / fps;
   wantedLandmarks.forEach((landmarkId) => {
     filters[landmarkId] = {
       x: new KalmanFilter1D({
         dt,
-        processNoise: 0.03,
+        processNoise: 1,
         measurementNoise: 0.00002,
       }),
       y: new KalmanFilter1D({
         dt,
-        processNoise: 0.03,
+        processNoise: 1,
         measurementNoise: 0.00002,
       }),
       z: new KalmanFilter1D({
         dt,
-        processNoise: 0.03,
+        processNoise: 1,
         measurementNoise: 0.0002,
       })
     }

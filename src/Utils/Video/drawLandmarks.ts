@@ -41,10 +41,10 @@ export const drawLandmarks = (
     const x = point.x * canvas.width;
     const y = point.y * canvas.height;
 
-    /*ctx.beginPath();
+    ctx.beginPath();
     ctx.arc(x, y, 5, 0, 2 * Math.PI);
     ctx.fillStyle = "green";
-    ctx.fill();*/
+    ctx.fill();
 
     ctx.fillStyle = "red";
     ctx.font = "30px Arial";

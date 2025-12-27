@@ -2,11 +2,15 @@ import { FrameData, Landmark } from "../Constants/types";
 
 export function calculateMeanAndStdForFrame(
     buffers: FrameData[],
-    targetFrame: FrameData,
-    visibilityThreshold: number
+    currentFrame: FrameData,
+    visibilityThreshold: number,
+    buffersSize: number,
+    frameIndex: number,
+    frames: FrameData[]
 ) {
-    buffers.push(targetFrame);
-    if (buffers.length > 30) buffers.shift();
+    buffers.push(currentFrame);
+    if (buffers.length > buffersSize) buffers.shift();
+    if (frameIndex < buffersSize) return;
 
     const meanFrame: Landmark[] = [];
     const elementsUsedToCalculateMeanFrame: number[] = [];
@@ -48,10 +52,20 @@ export function calculateMeanAndStdForFrame(
             lm.y /= elementsUsedToCalculateMeanFrame[i];
             lm.z /= elementsUsedToCalculateMeanFrame[i];
 
-            targetFrame.landmarks[i].frameMean = {
+            frames[frameIndex - buffersSize / 2].landmarks[i].frameMean = {
                 x: lm.x,
                 y: lm.y,
                 z: lm.z
+            }
+
+            if (frameIndex === frames.length - 1) {
+                for (let j = frameIndex - buffersSize / 2; j < frames.length; j++) {
+                    frames[j].landmarks[i].frameMean = {
+                        x: lm.x,
+                        y: lm.y,
+                        z: lm.z
+                    }
+                }
             }
         }
 
@@ -61,7 +75,7 @@ export function calculateMeanAndStdForFrame(
     buffers.forEach((fd, i) => {
         fd.landmarks.forEach((lm, j) => {
             if (lm.visibility > visibilityThreshold) {
-                const fm = targetFrame.landmarks[j].frameMean;
+                const fm = frames[frameIndex - buffersSize / 2].landmarks[j].frameMean;
                 if (fm && i > 0 && buffers[i - 1].landmarks[j].visibility > visibilityThreshold) {
                     stdFrame[j] = {
                         x: stdFrame[j].x + (Math.abs(lm.x - buffers[i - 1].landmarks[j].x) - fm.x) ** 2,
@@ -79,12 +93,21 @@ export function calculateMeanAndStdForFrame(
             f.y = Math.sqrt(f.y / (elementsUsedToCalculateMeanFrame[i] - 1));
             f.z = Math.sqrt(f.z / (elementsUsedToCalculateMeanFrame[i] - 1));
 
-            targetFrame.landmarks[i].frameStd = {
+            frames[frameIndex - buffersSize / 2].landmarks[i].frameStd = {
                 x: f.x,
                 y: f.y,
                 z: f.z
             }
-        }
 
+            if (frameIndex === frames.length - 1) {
+                for (let j = frameIndex - buffersSize / 2; j < frames.length; j++) {
+                    frames[j].landmarks[i].frameStd = {
+                        x: f.x,
+                        y: f.y,
+                        z: f.z
+                    }
+                }
+            }
+        }
     });
 }

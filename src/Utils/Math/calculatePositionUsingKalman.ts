@@ -1,8 +1,7 @@
 import { FrameData } from "../Constants/types";
 
 export const calculatePostionUsingKalman = (
-    frames: FrameData[],
-    visibilityThreshold: number
+    frames: FrameData[]
 ) => {
 
     if (!frames) return;
@@ -10,7 +9,6 @@ export const calculatePostionUsingKalman = (
     frames.forEach((frame, frameIndex) => {
 
         const landmarks = frame.landmarks;
-        const landmarksCorrected = frame.landmarksCorrected;
         if (!landmarks) return;
 
         if (!frame.landmarksCorrected) {
@@ -49,7 +47,7 @@ export const calculatePostionUsingKalman = (
             }
 
             if (forwardLastSeenFrameDistance !== null && backwardLastSeenFrameDistance !== null) {
-                let lastSeenFrameDistance = forwardLastSeenFrameDistance + backwardLastSeenFrameDistance;
+                const lastSeenFrameDistance = forwardLastSeenFrameDistance + backwardLastSeenFrameDistance;
 
                 x = forwardPrediction?.x! * backwardLastSeenFrameDistance / lastSeenFrameDistance + backwardPrediction?.x! * forwardLastSeenFrameDistance / lastSeenFrameDistance;
                 y = forwardPrediction?.y! * backwardLastSeenFrameDistance / lastSeenFrameDistance + backwardPrediction?.y! * forwardLastSeenFrameDistance / lastSeenFrameDistance;

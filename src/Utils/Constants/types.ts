@@ -14,6 +14,8 @@ export interface Joint {
   frameMean?: Landmark;
   frameStd?: Landmark;
   adjustedPosition?: Landmark;
+  adjustedPositionForward?: Landmark;
+  adjustedPositionBackward?: Landmark;
 }
 
 export interface KalmanPredictions {
@@ -72,4 +74,10 @@ export type Resolution = {
   height: number;
   heightScale: number;
   widthToHeightRatio: number;
+};
+
+export type KalmanOptions = {
+  dt: number;
+  processNoise: number;
+  measurementNoise: number;
 };

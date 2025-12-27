@@ -1,6 +1,4 @@
-import { FrameData, STDDistance, Landmark, Joint } from "../Constants/types";
-import { createKalmanFilters } from "../Kalman/createKalmanFilters";
-import { calculateDistance3D } from "../Math/calculateDistance3D";
+import { FrameData } from "../Constants/types";
 import { KalmanFilter1D } from "../Kalman/kalmanFilter1D";
 
 export const analyzeFrameForward = async (
@@ -8,20 +6,14 @@ export const analyzeFrameForward = async (
     frameIndex: number,
     previousFrameIndex: number,
     lastVisibleFrame: Map<number, number>,
-    kalmanFilters: Record<number, { x: any, y: any, z: any }>,
-    previousCorrectedStates: Record<number, { x?: any, y?: any, z?: any }>,
-    visibilityThreshold: number,
-    fps: number,
-    distanceVisibleFrames: STDDistance[],
-    buffers: FrameData[]
+    kalmanFilters: Record<number, { x: KalmanFilter1D, y: KalmanFilter1D, z: KalmanFilter1D }>,
+    visibilityThreshold: number
 ) => {
-
+    const vt = 0.2;
     const currentFrame = frames[frameIndex].landmarks;
     const landmarksExists = currentFrame.length > 0;
 
     if (!landmarksExists) return;
-
-
 
     currentFrame.forEach((joint, i) => {
 
@@ -32,76 +24,31 @@ export const analyzeFrameForward = async (
 
         const previousFrameJoint = previousFrameIndex >= 0 && previousFrameIndex < frames.length ? frames[previousFrameIndex].landmarks.find(j => j.name === joint.name) : null;
         const passesVisibilityThreshold = joint.visibility > visibilityThreshold;
-        const previousFrameLastSeenFrameExists = frameIndex > previousFrameIndex ? previousFrameJoint?.lastSeenFrames?.previous : previousFrameJoint?.lastSeenFrames?.next;
-        const framesBetweenCurrentAndLastVisibleFrame = frameIndex > previousFrameIndex ? frameIndex - (previousFrameJoint?.lastSeenFrames?.previous ?? 0) : (previousFrameJoint?.lastSeenFrames?.next ?? frameIndex + fps * 4) - frameIndex;
 
-        if (passesVisibilityThreshold) {
-            lastVisibleFrame.set(jointName, frameIndex);
-
-            if (previousFrameLastSeenFrameExists) {
-                if (framesBetweenCurrentAndLastVisibleFrame >= fps) {/*
-                    const dt = 1 / fps;
-                    kf = {
-                        x: new KalmanFilter1D({
-                            dt,
-                            processNoise: 0.03,
-                            measurementNoise: 0.00005,
-                        }),
-                        y: new KalmanFilter1D({
-                            dt,
-                            processNoise: 0.03,
-                            measurementNoise: 0.00005,
-                        }),
-                        z: new KalmanFilter1D({
-                            dt,
-                            processNoise: 0.03,
-                            measurementNoise: 0.00005,
-                        })
-                    }*/
-                }
-            }
-        }
-        let mean = currentFrame[i].frameMean;
+        if (passesVisibilityThreshold) lastVisibleFrame.set(jointName, frameIndex);
+        
         let std = currentFrame[i].frameStd;
-        joint.adjustedPosition = {
-            x: joint.x,
-            y: joint.y,
-            z: joint.z
-        }
-        /*if (joint && mean && std && previousFrameJoint && previousFrameJoint.adjustedPosition && (!passesVisibilityThreshold)) {
-            let res = asd(joint.x, previousFrameJoint.adjustedPosition.x, mean.x, std.x);
-            if (res) {
-                joint.adjustedPosition.x = res;
-            }
-            res = asd(joint.y, previousFrameJoint.adjustedPosition.y, mean.y, std.y);
-            if (res) {
-                joint.adjustedPosition.y = res;
-            }
-            res = asd(joint.z, previousFrameJoint.adjustedPosition.z, mean.z, std.z);
-            if (res) {
-                joint.adjustedPosition.z = res;
-            }
-        }*/
-
-        const Rx = joint.frameStd?.x ? joint.frameStd!.x * joint.frameStd!.x : 0.0002;
-        const Ry = joint.frameStd?.y ? joint.frameStd!.y * joint.frameStd!.y : 0.0002;
-        const Rz = joint.frameStd?.z ? joint.frameStd!.z * joint.frameStd!.z : 0.0002;
-
-
-
-        //kf.x.adaptProcessNoise(computeQ(1, joint.visibility, joint.frameMean?.x));
-        //kf.y.adaptProcessNoise(computeQ(1, joint.visibility, joint.frameMean?.y));
-        //kf.z.adaptProcessNoise(computeQ(1, joint.visibility, joint.frameMean?.z));
 
         let fx = kf.x.predict();
         let fy = kf.y.predict();
         let fz = kf.z.predict();
 
-        fx = kf.x.update(joint.x, Rx);
-        fy = kf.y.update(joint.y, Ry);
-        fz = kf.z.update(joint.z, Rz);
+        const xPredictedK_1 = kf.x.x[0][0];
+        const yPredictedK_1 = kf.y.x[0][0];
+        const zPredictedK_1 = kf.z.x[0][0];
 
-        // === 3. ZAPIS PREDYKCJI ===
+        kf.x.adaptProcessNoise(calculateQ(joint.visibility, joint.x, previousFrameJoint?.x, xPredictedK_1));
+        kf.y.adaptProcessNoise(calculateQ(joint.visibility, joint.y, previousFrameJoint?.y, yPredictedK_1));
+        kf.z.adaptProcessNoise(calculateQ(joint.visibility, joint.z, previousFrameJoint?.z, zPredictedK_1));
+
+        const rX = calculateR(joint.visibility, vt, joint.x, previousFrameJoint?.x, std?.x);
+        const rY = calculateR(joint.visibility, vt, joint.y, previousFrameJoint?.y, std?.y);
+        const rZ = calculateR(joint.visibility, vt, joint.z, previousFrameJoint?.z, std?.z);
+
+        fx = kf.x.update(joint.x, rX);
+        fy = kf.y.update(joint.y, rY);
+        fz = kf.z.update(joint.z, rZ);
+
         if (!joint.kalmanPredictions) joint.kalmanPredictions = {};
         if (!joint.lastSeenFrames) joint.lastSeenFrames = {};
 
@@ -116,18 +63,27 @@ export const analyzeFrameForward = async (
     });
 }
 
-function asd(current: number, previous: number, mean: number, std: number) {
-    if (Math.abs(current - previous) > 2 * std) {
-        return current > previous ? previous + mean : previous - mean;
+function calculateQ(frameVisibility: number, currentPosition: number, previousPosition?: number, predicted?: number) {
+    let q = 1;
+
+    if (previousPosition !== undefined) {
+        q *= 1 + Math.abs(currentPosition - previousPosition) * 10 * frameVisibility;
     }
-    return false;
+
+    if (predicted !== undefined) {
+        q *= 1 + Math.abs(currentPosition - predicted) * 10 * frameVisibility;
+    }
+
+    return q;
 }
 
+function calculateR(frameVisibility: number, visibilityThreshold: number, currentPosition: number, previousPosition?: number, std?: number) {
+    const rMin = 0.0005;
+    let rMax = 0.005;
 
-function computeQ(baseQ: number, visibility: number, delta: number = 0) {
-    const visFactor = 0.7 + (1 - visibility);              // niewidoczny → Q rośnie
-    const deltaFactor = delta * 1000;             // szybki ruch → Q rośnie
+    if (((std && previousPosition !== undefined && Math.abs(previousPosition - currentPosition) >= std * 2) || !std) && frameVisibility < visibilityThreshold) {
+        rMax *= 10;
+    }
 
-    // Zwracamy Q jako wariancję
-    return baseQ * visFactor * deltaFactor;
+    return rMin + (1 - frameVisibility) ** 2 * (rMax - rMin);
 }

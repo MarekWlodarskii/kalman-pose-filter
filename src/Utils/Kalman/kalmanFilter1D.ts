@@ -1,13 +1,8 @@
-export type KalmanOptions = {
-  dt: number;                 // delta time (s)
-  processNoise: number;       // sigma_a^2 (bazowy)
-  measurementNoise: number;   // sigma_x^2 (bazowy)
-};
+import { KalmanOptions } from "../Constants/types";
 
 export class KalmanFilter1D {
-  // stan: [x, v]
-  private x = [[0], [0]]; // state vector
-  private P = [            // covariance matrix
+  public x = [[0], [0]];
+  private P = [
     [1, 0],
     [0, 1],
   ];
@@ -30,8 +25,6 @@ export class KalmanFilter1D {
     this.R = [[measurementNoise]];
   }
 
-  // ===== PUBLIC API =====
-
   predict() {
     this.x = mul(this.F, this.x);
     this.P = add(mul(mul(this.F, this.P), T(this.F)), this.Q);
@@ -43,9 +36,9 @@ export class KalmanFilter1D {
       this.R = [[measurementNoise]];
     }
 
-    const y = sub([[z]], mul(this.H, this.x));          // innovation
+    const y = sub([[z]], mul(this.H, this.x));
     const S = add(mul(mul(this.H, this.P), T(this.H)), this.R);
-    const K = mul(mul(this.P, T(this.H)), inv1x1(S));  // Kalman gain
+    const K = mul(mul(this.P, T(this.H)), inv1x1(S));
 
     this.x = add(this.x, mul(K, y));
 
@@ -67,8 +60,6 @@ export class KalmanFilter1D {
     return { x: this.x[0][0], v: this.x[1][0] };
   }
 
-  // ===== HELPERS =====
-
   private buildQ(dt: number, sigmaA2: number) {
     return [
       [0.25 * dt ** 4 * sigmaA2, 0.5 * dt ** 3 * sigmaA2],
@@ -76,8 +67,6 @@ export class KalmanFilter1D {
     ];
   }
 }
-
-// ====== MINI ALGEBRA MACIERZY ======
 
 function mul(A: number[][], B: number[][]): number[][] {
   return A.map((row, i) =>
