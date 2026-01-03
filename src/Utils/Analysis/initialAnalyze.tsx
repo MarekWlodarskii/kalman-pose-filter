@@ -1,23 +1,24 @@
 import { PoseLandmarker } from "@mediapipe/tasks-vision";
 import { FrameData, VideoPoseData } from "../Constants/types";
-import { createKalmanFilters } from "../Kalman/createKalmanFilters";
-import { calculatePostionUsingKalman } from "../Math/calculatePositionUsingKalman";
 import { analyzeFrame } from "./analyzeFrame";
-import { analyzeFrameForward } from "./analyzeFrameForward";
-import { calculateMeanAndStdForFrame } from "../Math/calculateMeanAndStdForFrame";
+import { kalmanFilterAnalyzeVideo } from "./kalmanFilterAnalyzeVideo";
 
-export const analyzeVideo = async (
+export const initialAnalyze = async (
     videoRef: React.RefObject<HTMLVideoElement | null>,
     poseLandmarkerRef: React.RefObject<PoseLandmarker | null>,
     setAllowControl: (value: React.SetStateAction<boolean>) => void,
     fps: number,
-    wantedLandmarks: number[],
     visibilityThreshold: number,
-    setPoseData: (value: React.SetStateAction<VideoPoseData | null>) => void
+    setPoseData: (value: React.SetStateAction<VideoPoseData | null>) => void,
+    setIsAnalyzing: (value: React.SetStateAction<boolean>) => void,
+    setProgress: (value: React.SetStateAction<number>) => void,
+    analysisCancelRef: React.RefObject<boolean>
 ) => {
 
     if (!videoRef.current || !poseLandmarkerRef.current) return;
-    
+
+    const visibilityThresholdNormalized: number = visibilityThreshold / 100;
+
     setAllowControl(false);
 
     const video = videoRef.current;
@@ -25,7 +26,9 @@ export const analyzeVideo = async (
     const interval = 1000 / fps;
     const frames: FrameData[] = [];
 
+
     for (let t = 1, frameIndex = 0; t < duration; t += interval, frameIndex++) {
+        if (analysisCancelRef.current) return;
 
         video.currentTime = t / 1000;
         await new Promise((resolve) => (video.onseeked = resolve));
@@ -33,71 +36,29 @@ export const analyzeVideo = async (
         const result = await poseLandmarkerRef.current!.detectForVideo(video, t);
 
         const analyzedFrame = await analyzeFrame(
-            result,
-            wantedLandmarks
+            result
         );
 
-        if (!analyzedFrame) continue;
-
-        frames.push({
+        if (analyzedFrame) frames.push({
             frameIndex,
             timestamp: t / 1000,
             landmarks: analyzedFrame!,
         });
+
+        setProgress(Math.ceil(t / duration * 100));
     }
 
-    let kalmanFilters = createKalmanFilters(wantedLandmarks, fps);
-    const lastVisibleFrame = new Map();
-    let buffers: FrameData[] = [];
-
-    for (let frameIndex = 0; frameIndex < frames.length; frameIndex++) {
-
-        calculateMeanAndStdForFrame(
-            buffers,
-            frames[frameIndex],
-            0,
-            20,
-            frameIndex,
-            frames
-        );
-    }
-
-    for (let frameIndex = 0; frameIndex < frames.length; frameIndex++) {
-
-        analyzeFrameForward(
-            frames,
-            frameIndex,
-            frameIndex - 1,
-            lastVisibleFrame,
-            kalmanFilters,
-            visibilityThreshold
-        );
-
-    }
-
-    lastVisibleFrame.clear();
-    kalmanFilters = createKalmanFilters(wantedLandmarks, fps);
-    buffers = [];
-
-    for (let frameIndex = frames.length - 1; frameIndex >= 0; frameIndex--) {
-
-        analyzeFrameForward(
-            frames,
-            frameIndex,
-            frameIndex + 1,
-            lastVisibleFrame,
-            kalmanFilters,
-            visibilityThreshold
-        );
-    }
-
-    calculatePostionUsingKalman(
+    kalmanFilterAnalyzeVideo(
+        fps,
+        visibilityThresholdNormalized,
+        setPoseData,
         frames
     );
 
-    setPoseData({ fps: fps, frames: frames });
-    console.log("Pose data:", { fps: fps, frames });
+    if (videoRef.current) {
+        videoRef.current.currentTime = 0;
+    }
 
+    setIsAnalyzing(false);
     setAllowControl(true);
 }
-

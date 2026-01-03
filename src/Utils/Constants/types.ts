@@ -11,11 +11,11 @@ export interface Joint {
   visibility: number;
   lastSeenFrames?: LastSeenFrames;
   kalmanPredictions?: KalmanPredictions;
+  kalmanPredictionAngles?: KalmanPredictionAngles;
   frameMean?: Landmark;
   frameStd?: Landmark;
   adjustedPosition?: Landmark;
-  adjustedPositionForward?: Landmark;
-  adjustedPositionBackward?: Landmark;
+  angle?: number | null;
 }
 
 export interface KalmanPredictions {
@@ -23,11 +23,16 @@ export interface KalmanPredictions {
   backwardPrediction?: Landmark;
 }
 
+export interface KalmanPredictionAngles {
+  forwardPrediction?: number | null;
+  backwardPrediction?: number | null;
+}
+
 export interface FrameData {
   frameIndex: number;
   timestamp: number;
   landmarks: Joint[];
-  landmarksCorrected?: Joint[];
+  landmarksCorrected?: Joint[] | null;
 }
 
 export interface VideoPoseData {
@@ -35,39 +40,11 @@ export interface VideoPoseData {
   frames: FrameData[];
 }
 
-export interface ConnectedJoints {
-  frame: number;
-  jointNames: PairOfJoints;
-  sumVisibility: number;
-  minVisibility: number;
-}
-
-export interface STDDistance {
-  jointName: number;
-  elementsUsed: number;
-  sumDistance?: number;
-  meanDistance?: number;
-  sumDistanceLandmark?: Landmark;
-  meanDistanceLandmark?: Landmark;
-  stdDistance?: number;
-  stdDistanceLandmark?: Landmark;
-}
-
 export type Landmark = {
   x: number;
   y: number;
   z: number;
 };
-
-export type PairOfJoints = {
-  joint1: number;
-  joint2: number;
-  bestMeanVisibility: number | null;
-  bestMeanVisibilityFrameIndex: number | null;
-  bestMinVisibility: number | null;
-  bestMinVisibilityFrameIndex: number | null;
-  distance: number | null;
-}
 
 export type Resolution = {
   width: number;

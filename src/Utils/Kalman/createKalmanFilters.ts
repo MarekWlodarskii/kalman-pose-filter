@@ -10,18 +10,18 @@ export const createKalmanFilters = (
     filters[landmarkId] = {
       x: new KalmanFilter1D({
         dt,
-        processNoise: 1,
-        measurementNoise: 0.00002,
+        processNoise: 100,
+        measurementNoise: 0.00001,
       }),
       y: new KalmanFilter1D({
         dt,
-        processNoise: 1,
-        measurementNoise: 0.00002,
+        processNoise: 100,
+        measurementNoise: 0.00001,
       }),
       z: new KalmanFilter1D({
         dt,
-        processNoise: 1,
-        measurementNoise: 0.0002,
+        processNoise: 100,
+        measurementNoise: 0.0001,
       })
     }
   });

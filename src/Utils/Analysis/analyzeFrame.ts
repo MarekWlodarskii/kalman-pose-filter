@@ -2,8 +2,7 @@ import { PoseLandmarkerResult } from "@mediapipe/tasks-vision";
 import { Joint } from "../Constants/types";
 
 export const analyzeFrame = async (
-    result: PoseLandmarkerResult,
-    wantedLandmarks: number[]
+    result: PoseLandmarkerResult
 ) => {
 
     const joints: Joint[] = [];
@@ -15,8 +14,6 @@ export const analyzeFrame = async (
     }
 
     result.landmarks[0].forEach((joint, i) => {
-
-        if (!wantedLandmarks.includes(i)) return;
 
         joints.push({
             name: i,
