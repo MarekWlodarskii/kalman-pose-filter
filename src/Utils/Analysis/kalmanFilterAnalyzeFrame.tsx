@@ -68,8 +68,13 @@ export const kalmanFilterAnalyzeFrame = async (
 
 
 
-function calculateQ(frameVisibility: number, currentPosition: number, previousPosition?: number, predicted?: number) {
-    let q = 100;
+function calculateQ(
+    frameVisibility: number,
+    currentPosition: number,
+    previousPosition?: number,
+    predicted?: number): number {
+        
+    let q = 10;
 
     if (previousPosition !== undefined) {
         q *= 1 + Math.abs(currentPosition - previousPosition) * 10 * frameVisibility;
@@ -82,11 +87,19 @@ function calculateQ(frameVisibility: number, currentPosition: number, previousPo
     return q;
 }
 
-function calculateR(frameVisibility: number, visibilityThreshold: number, currentPosition: number, previousPosition?: number, std?: number) {
+function calculateR(
+    frameVisibility: number,
+    visibilityThreshold: number,
+    currentPosition: number,
+    previousPosition?: number,
+    std?: number): number {
+
     const rMin = 0.0005;
     let rMax = 0.005;
 
-    if (((std && previousPosition !== undefined && Math.abs(previousPosition - currentPosition) >= std * 2) || !std) && frameVisibility < visibilityThreshold) {
+    if (
+        ((std && previousPosition !== undefined && Math.abs(previousPosition - currentPosition) >= std * 2) || !std) 
+        && frameVisibility < visibilityThreshold) {
         rMax *= 10;
     }
 

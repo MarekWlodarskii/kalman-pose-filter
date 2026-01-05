@@ -10,7 +10,7 @@ export function calculateMeanAndStdForFrame(
 ) {
     buffers.push(currentFrame);
     if (buffers.length > buffersSize) buffers.shift();
-    if (frameIndex < buffersSize) return;
+    if (frameIndex < buffersSize / 2) return;
 
     const meanFrame: Landmark[] = [];
     const elementsUsedToCalculateMeanFrame: number[] = [];

@@ -85,7 +85,8 @@ export const drawLandmarks = (
     ctx.font = `${canvasSizeRef.current}px Arial`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(textToDisplay.toString(), x, y);
+    const displayText: string = displayTypeRef.current === DisplayType.JOINT_ANGLES ? textToDisplay.toString() + "°" : textToDisplay.toString();
+    ctx.fillText(displayText, x, y);
   });
 
 }
